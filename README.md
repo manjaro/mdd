@@ -1,13 +1,13 @@
 # Manjaro Data Donor
 
-MDD provides a secure way to gather anonymized data about the usage of Manjaro.
-This way we can learn how Manjaro is used by our users and can concentrate our efforts on what matters most.
+MDD provides us with a secure way to receive anonymized data about the usage of Manjaro.
+This way we can learn how Manjaro is used by our users and we can focus our efforts on what matters most in order to improve the user experience.
 
-The data is anonym in two ways:
-- We only collect impersonal information about the hardware and the environment. In particular we **don't store IP addresses**.
+**The data is anonym in two ways:**
+- We only collect impersonal information about the hardware and the environment. In particular **we don't store IP addresses**.
 - To differentiate systems we need a unique identifer. For that we use [`/etc/machine-id`](https://www.freedesktop.org/software/systemd/man/latest/machine-id.html), what is hashed before being sent.
 
-The data is being gathered on our Hetzner data server. Visualizations of the data are made available via Grafana [here](https://metrics.manjaro.org/public-dashboards/cb0f690cba304389bf3ed2c254c14c01). We plan on adding more diagrams for interesting data later on.
+The data is being stored in a database on one of our Hetzner servers. Visualizations of the data are made available via Grafana [here](https://metrics.manjaro.org/public-dashboards/cb0f690cba304389bf3ed2c254c14c01). We plan on adding more charts for interesting data later on.
 
 ## Setup Instructions
 
@@ -65,7 +65,7 @@ The log level can be increased from `WARNING` to `INFO`/`DEBUG` with:
 python mdd.py --log INFO
 ```
 
-By default MDD tries to use [inxi](https://smxi.org/docs/inxi.htm) for gathering information about the system. For debugging this can be be deactivated:
+By default MDD tries to use [inxi](https://smxi.org/docs/inxi.htm) for gathering information about the system. For debugging this can be deactivated:
 
 ```bash
 MDD_DISABLE_INXI=1 python mdd.py
