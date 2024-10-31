@@ -635,9 +635,10 @@ def get_device_data(telemetry: bool):
         }
     }
 
-    data["meta"]["inxi"] = inxi is not None
     if not telemetry:
         return data
+
+    data["meta"]["inxi"] = inxi is not None
 
     data |= {
         "distributor": get_distributor_info(),
