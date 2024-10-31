@@ -264,16 +264,6 @@ def get_install_date():
     return date
 
 
-def get_distributor_info():
-    logging.info("...get distributor info")
-
-    return {
-        "id": distro.id(),
-        "release": distro.version(),
-        "codename": distro.codename(),
-    }
-
-
 def get_system_info():
     logging.info("...get system info")
     return {
@@ -635,16 +625,19 @@ def get_device_data(telemetry: bool):
             "version": 1,
             "timestamp": datetime.now(pytz.UTC).isoformat(),
             "device_id": get_hashed_device_id(),
+            "distro_id": distro.id(),
         }
     }
 
     if not telemetry:
         return data
 
-    data["meta"]["inxi"] = inxi is not None
+    data["meta"] |= {
+        "release": distro.version(),
+        "inxi": inxi is not None,
+    }
 
     data |= {
-        "distributor": get_distributor_info(),
         "system": get_system_info(),
         "boot": get_boot_info(),
         "cpu": get_cpu_info(),
