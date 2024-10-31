@@ -14,6 +14,7 @@ import logging
 import argparse
 import tzlocal
 import re
+import distro
 from datetime import datetime
 from dateutil import parser as date_parser
 
@@ -267,9 +268,9 @@ def get_distributor_info():
     logging.info("...get distributor info")
 
     return {
-        "id": get_command_output("lsb_release -si"),
-        "release": get_command_output("lsb_release -sr"),
-        "codename": get_command_output("lsb_release -sc"),
+        "id": distro.id(),
+        "release": distro.version(),
+        "codename": distro.codename(),
     }
 
 
