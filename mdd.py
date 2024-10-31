@@ -195,6 +195,9 @@ def check_windows_dualboot():
 def get_pacman_mirrors_info():
     logging.info("...get pacman-mirrors info")
 
+    if not shutil.which("pacman-mirrors"):
+        return {"total": None, "ok": None, "country_config": ""}
+
     try:
         country_config = get_command_output("pacman-mirrors --country-config")
         output = get_command_output("pacman-mirrors --status")
@@ -223,7 +226,7 @@ def get_pacman_mirrors_info():
 
     except subprocess.CalledProcessError as e:
         logging.error(f"running pacman-mirrors: {e}")
-        return {}
+        return {"total": None, "ok": None, "country_config": ""}
 
 
 def get_compositor():
@@ -417,8 +420,8 @@ def get_graphics_info():
                                 "refresh": refresh,
                                 "dpi": None,
                                 "size": None,
-                        }
-                    )
+                            }
+                        )
 
     return {
         "comp": compositor,
