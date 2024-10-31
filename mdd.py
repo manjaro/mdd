@@ -392,32 +392,31 @@ def get_graphics_info():
 
         # Run xrandr command and capture output
         xrandr_output = get_command_output("xrandr")
+        if xrandr_output:
+            outputs = []
+            output_connected = False
 
-        # Parse the output
-        outputs = []
-        output_connected = False
+            for line in xrandr_output.split("\n"):
+                connected_match = re.match(r"^(\S+) connected", line)
+                if connected_match:
+                    output_connected = True
+                    continue
 
-        for line in xrandr_output.split("\n"):
-            connected_match = re.match(r"^(\S+) connected", line)
-            if connected_match:
-                output_connected = True
-                continue
-
-            if output_connected:
-                mode_match = re.match(r"^   (\d+x\d+)\s+([\d.]+)\*", line)
-                if mode_match:
-                    resolution = mode_match.group(1)
-                    try:
-                        refresh = float(mode_match.group(2))
-                    except ValueError:
-                        refresh = 0
-                    outputs.append(
-                        {
-                            "model": "unknown",
-                            "res": resolution,
-                            "refresh": refresh,
-                            "dpi": None,
-                            "size": None,
+                if output_connected:
+                    mode_match = re.match(r"^   (\d+x\d+)\s+([\d.]+)\*", line)
+                    if mode_match:
+                        resolution = mode_match.group(1)
+                        try:
+                            refresh = float(mode_match.group(2))
+                        except ValueError:
+                            refresh = 0
+                        outputs.append(
+                            {
+                                "model": "unknown",
+                                "res": resolution,
+                                "refresh": refresh,
+                                "dpi": None,
+                                "size": None,
                         }
                     )
 
