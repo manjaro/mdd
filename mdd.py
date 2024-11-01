@@ -266,10 +266,18 @@ def get_install_date():
 
 def get_system_info():
     logging.info("...get system info")
+
+    def get_dmi(file_name: str):
+        return get_command_output("cat /sys/devices/virtual/dmi/id/" + file_name)
+
     return {
         "kernel": platform.release(),
         "form_factor": get_command_output("hostnamectl chassis"),
         "install_date": get_install_date(),
+        "product_name": get_dmi("product_name"),
+        "product_family": get_dmi("product_family"),
+        "sys_vendor": get_dmi("sys_vendor"),
+        "board_name": get_dmi("board_name"),
     }
 
 
