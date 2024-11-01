@@ -193,43 +193,6 @@ def check_windows_dualboot():
             return False
 
 
-def get_pacman_mirrors_info():
-    logging.info("...get pacman-mirrors info")
-
-    if not shutil.which("pacman-mirrors"):
-        return {"total": None, "ok": None, "country_config": ""}
-
-    try:
-        country_config = get_command_output("pacman-mirrors --country-config")
-        output = get_command_output("pacman-mirrors --status")
-
-        # Initialize counters for total and OK mirrors
-        total_mirrors = 0
-        ok_mirrors = 0
-
-        output = subprocess.run(
-            ["pacman-mirrors", "--status"], capture_output=True, text=True, timeout=30
-        ).stdout
-
-        # Parse mirror status from output
-        for line in output.split("\n"):
-            line = line.strip()
-            if line.startswith("Mirror #"):
-                total_mirrors += 1
-                if "OK" in line:
-                    ok_mirrors += 1
-
-        return {
-            "total": total_mirrors,
-            "ok": ok_mirrors,
-            "country_config": country_config,
-        }
-
-    except subprocess.CalledProcessError as e:
-        logging.error(f"running pacman-mirrors: {e}")
-        return {"total": None, "ok": None, "country_config": ""}
-
-
 def get_compositor():
     """Returns the compositor currently in use on a Linux system."""
     compositors = ["sway", "compiz", "mutter", "kwin", "xfwm4", "picom", "compton"]
@@ -281,14 +244,11 @@ def get_system_info():
     }
 
 
-def get_locale_info():
-    logging.info("...get locale info")
+def get_boot_info():
+    logging.info("...get boot info")
     return {
-        "region": get_command_output(
-            "localectl status | grep 'System Locale'", ""
-        ).split("=")[-1],
-        "language": get_command_output("echo $LANG", "").split("_")[0],
-        "timezone": str(tzlocal.get_localzone()),
+        "uefi": os.path.isdir("/sys/firmware/efi"),
+        "uptime_seconds": int(float(get_command_output("cat /proc/uptime").split()[0])),
     }
 
 
@@ -329,14 +289,6 @@ def get_memory_info():
     return {
         "ram_gb": psutil.virtual_memory().total / (1024**3),
         "swap_gb": psutil.swap_memory().total / (1024**3),
-    }
-
-
-def get_boot_info():
-    logging.info("...get boot info")
-    return {
-        "uefi": os.path.isdir("/sys/firmware/efi"),
-        "uptime_seconds": int(float(get_command_output("cat /proc/uptime").split()[0])),
     }
 
 
@@ -552,6 +504,54 @@ def get_disk_info():
         "disks": get_disks_metrics(),
         "windows": check_windows_dualboot(),
     }
+
+
+def get_locale_info():
+    logging.info("...get locale info")
+    return {
+        "region": get_command_output(
+            "localectl status | grep 'System Locale'", ""
+        ).split("=")[-1],
+        "language": get_command_output("echo $LANG", "").split("_")[0],
+        "timezone": str(tzlocal.get_localzone()),
+    }
+
+
+def get_pacman_mirrors_info():
+    logging.info("...get pacman-mirrors info")
+
+    if not shutil.which("pacman-mirrors"):
+        return {"total": None, "ok": None, "country_config": ""}
+
+    try:
+        country_config = get_command_output("pacman-mirrors --country-config")
+        output = get_command_output("pacman-mirrors --status")
+
+        # Initialize counters for total and OK mirrors
+        total_mirrors = 0
+        ok_mirrors = 0
+
+        output = subprocess.run(
+            ["pacman-mirrors", "--status"], capture_output=True, text=True, timeout=30
+        ).stdout
+
+        # Parse mirror status from output
+        for line in output.split("\n"):
+            line = line.strip()
+            if line.startswith("Mirror #"):
+                total_mirrors += 1
+                if "OK" in line:
+                    ok_mirrors += 1
+
+        return {
+            "total": total_mirrors,
+            "ok": ok_mirrors,
+            "country_config": country_config,
+        }
+
+    except subprocess.CalledProcessError as e:
+        logging.error(f"running pacman-mirrors: {e}")
+        return {"total": None, "ok": None, "country_config": ""}
 
 
 def get_package_info():
