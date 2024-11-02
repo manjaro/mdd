@@ -402,7 +402,7 @@ def get_audio_info():
     pulseaudio_active = False
     found_pipewire = False
 
-    if is_installed("pulseaudio"):
+    if is_installed("pulseaudio") and shutil.which("pactl"):
         pulse_info = {
             "name": "PulseAudio",
             "active": False,
