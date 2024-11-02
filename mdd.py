@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# SPDX-FileCopyrightText: 2024 Roman Gilg <romangg@manjaro.org>
+# SPDX-License-Identifier: MIT
 import os
 import uuid
 import psutil
