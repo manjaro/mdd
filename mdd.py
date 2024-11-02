@@ -508,12 +508,19 @@ def get_disk_info():
 
 def get_locale_info():
     logging.info("...get locale info")
+
+    try:
+        timezone = str(tzlocal.get_localzone())
+    except Exception as e:
+        logging.warning(f"timezone: '{str(e)}'")
+        timezone = "error"
+
     return {
         "region": get_command_output(
             "localectl status | grep 'System Locale'", ""
         ).split("=")[-1],
         "language": get_command_output("echo $LANG", "").split("_")[0],
-        "timezone": str(tzlocal.get_localzone()),
+        "timezone": timezone,
     }
 
 
