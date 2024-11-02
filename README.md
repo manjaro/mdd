@@ -40,7 +40,7 @@ The data is being stored in a database on one of our Hetzner servers. Visualizat
 
 ## Usage
 ### Dry Run
-Run the script to send data directly. The submitted data will be displayed on the terminal.
+Run the script without any arguments to send data directly. The submitted data will be displayed on the terminal.
 Additionally you can first run
 
 ```bash
