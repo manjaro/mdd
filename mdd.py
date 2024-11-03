@@ -450,7 +450,7 @@ def get_audio_info():
         }
 
         # pactl is a dependency of pulseaudio
-        pulse_out = get_command_output("pactl info").split("\n")
+        pulse_out = get_command_output("LANG=C pactl info").split("\n")
         for line in pulse_out:
             if line.startswith("Server Name"):
                 name = line.split(" ", 2)[-1].lower()
@@ -474,7 +474,7 @@ def get_audio_info():
 
     if not found_pipewire and is_installed("pipewire"):
         # Check if PipeWire is active (PulseAudio might not be installed)
-        pipew_out = get_command_output("pw-cli info 0")
+        pipew_out = get_command_output("LANG=C pw-cli info 0")
         info["servers"].append(
             {
                 "name": "PipeWire",
