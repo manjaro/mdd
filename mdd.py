@@ -256,16 +256,52 @@ def get_boot_info():
 
 def get_cpu_info():
     logging.info("...get cpu info")
+    cpu_model = ""
+    cpu_model2 = ""
 
-    cpu_model = (
-        [
-            line
-            for line in get_command_output("cat /proc/cpuinfo").split("\n")
-            if "model name" in line
-        ][0]
-        .split(":")[1]
-        .strip()
-    )
+    def write_cpu_model(val):
+        nonlocal cpu_model
+        if val not in (None, "", "N/A"):
+            cpu_model = val
+
+    if inxi:
+        inxi_info = get_inxi_main_cat("#CPU")
+
+        for item in inxi_info:
+            write_cpu_model(get_inxi_val(item, "#model"))
+            write_cpu_model(get_inxi_val(item, "#variant"))
+            write_cpu_model(get_inxi_val(item, "#variant-1"))
+
+            if val := get_inxi_val(item, "#variant-2"):
+                cpu_model2 = "/" + val
+
+        cpu_model += cpu_model2
+
+    if not cpu_model:
+        # Fallback in case we did not get info from inxi
+        try:
+            if platform.machine() == "aarch64":
+                cpu_model = (
+                    [
+                        line
+                        for line in get_command_output("cat /proc/cpuinfo").split("\n")
+                        if "Model" in line
+                    ][0]
+                    .split(":")[1]
+                    .strip()
+                )
+            else:
+                cpu_model = (
+                    [
+                        line
+                        for line in get_command_output("cat /proc/cpuinfo").split("\n")
+                        if "model name" in line
+                    ][0]
+                    .split(":")[1]
+                    .strip()
+                )
+        except IndexError as e:
+            pass
 
     info = {
         "arch": platform.machine(),
@@ -273,15 +309,6 @@ def get_cpu_info():
         "cores": psutil.cpu_count(logical=False),
         "threads": psutil.cpu_count(logical=True),
     }
-
-    if inxi:
-        inxi_info = get_inxi_main_cat("#CPU")
-
-        for item in inxi_info:
-            val = get_inxi_val(item, "#model")
-            if val:
-                info["model"] = val
-                break
 
     return info
 
