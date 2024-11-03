@@ -233,7 +233,7 @@ def get_system_info():
     logging.info("...get system info")
 
     def get_dmi(file_name: str):
-        return get_command_output("cat /sys/devices/virtual/dmi/id/" + file_name)
+        return get_command_output("cat /sys/devices/virtual/dmi/id/" + file_name + " 2>/dev/null")
 
     return {
         "kernel": platform.release(),
