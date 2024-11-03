@@ -443,11 +443,11 @@ def get_audio_info():
     pulseaudio_active = False
     found_pipewire = False
 
-    sudo = ""
+    sudo = ["", ""]
     if os.geteuid() == 0:
         user = get_command_output("last -n1").split("\n")[0].split(" ")[0]
-        user_id = get_command_output("sudo -u " + user + " id -u")
-        sudo = "sudo -u " + user + " XDG_RUNTIME_DIR=/run/user/" + user_id + " "
+        user_id = get_command_output("su - " + user + " -c 'id -u'")
+        sudo = ["su - " + user + " -c 'XDG_RUNTIME_DIR=/run/user/" + user_id + " ", "'"]
 
     if is_installed("pulseaudio"):
         pulse_info = {
@@ -456,7 +456,7 @@ def get_audio_info():
         }
 
         # pactl is a dependency of pulseaudio
-        pulse_out = get_command_output(sudo + "LANG=C pactl info").split("\n")
+        pulse_out = get_command_output(sudo[0] + "LANG=C pactl info" + sudo[1]).split("\n")
         for line in pulse_out:
             if line.startswith("Server Name"):
                 name = line.split(" ", 2)[-1].lower()
@@ -480,7 +480,7 @@ def get_audio_info():
 
     if not found_pipewire and is_installed("pipewire"):
         # Check if PipeWire is active (PulseAudio might not be installed)
-        pipew_out = get_command_output(sudo + "LANG=C pw-cli info 0")
+        pipew_out = get_command_output(sudo[0] + "LANG=C pw-cli info 0" + sudo[1])
         info["servers"].append(
             {
                 "name": "PipeWire",
