@@ -232,13 +232,36 @@ def get_install_date():
 def get_system_info():
     logging.info("...get system info")
 
-    def get_dmi(file_name: str):
-        return get_command_output("cat /sys/devices/virtual/dmi/id/" + file_name)
-
-    return {
+    common_data = {
         "kernel": platform.release(),
         "form_factor": get_command_output("hostnamectl chassis"),
         "install_date": get_install_date(),
+    }
+
+    def get_dmi(file_name: str):
+        return get_command_output("cat /sys/devices/virtual/dmi/id/" + file_name)
+
+    if platform.machine() == "aarch64":
+        product_name = get_command_output("cat /proc/device-tree/model").replace(
+            chr(0), ""
+        )
+        device_compat = (
+            get_command_output("cat /proc/device-tree/compatible")
+            .replace(chr(0), " ")
+            .split(",")
+        )
+
+        def get_compat(pos):
+            return device_compat[pos].strip() if len(device_compat) > pos else ""
+
+        return common_data | {
+            "product_name": product_name,
+            "product_family": get_compat(2),
+            "sys_vendor": get_compat(0),
+            "board_name": get_compat(1),
+        }
+
+    return common_data | {
         "product_name": get_dmi("product_name"),
         "product_family": get_dmi("product_family"),
         "sys_vendor": get_dmi("sys_vendor"),
