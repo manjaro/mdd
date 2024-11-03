@@ -445,7 +445,7 @@ def get_audio_info():
 
     sudo = ["", ""]
     if os.geteuid() == 0:
-        user = get_command_output("last -n1").split("\n")[0].split(" ")[0]
+        user = get_command_output("last -wn1").split("\n")[0].split(" ")[0]
         user_id = get_command_output("su - " + user + " -c 'id -u'")
         sudo = ["su - " + user + " -c 'XDG_RUNTIME_DIR=/run/user/" + user_id + " ", "'"]
 
