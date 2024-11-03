@@ -318,25 +318,27 @@ def get_graphics_info():
                 }
                 gpus.append(gpu_info)
 
-            if get_inxi_val(item, "#Monitor"):
+            if monitor_name := get_inxi_val(item, "#Monitor"):
                 refresh = get_inxi_val(item, "#hz")
                 dpi = get_inxi_val(item, "#dpi")
                 size = get_inxi_val(item, "#size")
+                mapped = get_inxi_val(item, "#mapped")
                 info = {
                     "model": get_inxi_val(item, "#model"),
                     "res": get_inxi_val(item, "#res"),
-                    "refresh": float(refresh) if refresh else 0,
-                    "dpi": float(dpi) if dpi else 0,
+                    "refresh": float(refresh) if refresh else None,
+                    "dpi": float(dpi) if dpi else None,
                     "size": (size.split(" ")[0].replace("mm", "") if size else None),
+                    "mapped": mapped if mapped else monitor_name,
                 }
                 outputs.append(info)
 
-    else:
-        compositor = get_compositor()
-        dri = None
+    # Try fallbacks for any data that inxi was not capable of gathering.
+    compositor = compositor if compositor else get_compositor()
 
+    if len(gpus) == 0:
         gpu_info = {
-            "vendor": "unknown",
+            "vendor": "",
             "model": get_command_output("lspci | grep -i vga | cut -d ':' -f3"),
             "driver": (
                 get_command_output("glxinfo | grep 'OpenGL vendor'").split(": ")[-1]
@@ -346,35 +348,74 @@ def get_graphics_info():
         }
         gpus.append(gpu_info)
 
-        # Run xrandr command and capture output
-        xrandr_output = get_command_output("xrandr")
-        if xrandr_output:
-            outputs = []
-            output_connected = False
+    # Run xrandr command and capture output
+    if xrandr_output := get_command_output("xrandr"):
+        mapped = None
+        inxi_output = None
 
-            for line in xrandr_output.split("\n"):
-                connected_match = re.match(r"^(\S+) connected", line)
-                if connected_match:
-                    output_connected = True
-                    continue
+        for line in xrandr_output.split("\n"):
+            if re.match(r"^(\S+) disconnected", line):
+                mapped = None
+                continue
 
-                if output_connected:
-                    mode_match = re.match(r"^   (\d+x\d+)\s+([\d.]+)\*", line)
-                    if mode_match:
-                        resolution = mode_match.group(1)
-                        try:
-                            refresh = float(mode_match.group(2))
-                        except ValueError:
-                            refresh = 0
-                        outputs.append(
-                            {
-                                "model": "unknown",
-                                "res": resolution,
-                                "refresh": refresh,
-                                "dpi": None,
-                                "size": None,
-                            }
-                        )
+            if re.match(r"^(\S+) connected", line):
+                # When we encounter a line that contains the word 'connected', we mark the beginning
+                # of a new connected output and continue with the line afterwards.
+                mapped = line.split(" ")
+                inxi_output = next(
+                    (output for output in outputs if output["mapped"] == mapped[0]),
+                    None,
+                )
+
+                continue
+
+            mode_match = re.match(r"^ {3}(\d+x\d+).*\s([\d.]+)\*", line)
+            if not mode_match:
+                # Inactive mode
+                continue
+
+            if not mapped:
+                # A mode can only be active for mapped outputs
+                raise Exception(f"matched a mode '{mode_match}' without being mapped")
+
+            resolution = mode_match.group(1)
+            try:
+                refresh = float(mode_match.group(2))
+            except ValueError:
+                refresh = None
+
+            # Try to get size from connected line.
+            size = ""
+            if len(mapped) > 2:
+                try:
+                    width = int(mapped[-3].replace("mm", ""))
+                    height = int(mapped[-1].replace("mm", ""))
+                    size = str(width) + "x" + str(height)
+                except ValueError as e:
+                    logging.error(f"xrandr size for '{' '.join(mapped)}': {str(e)}")
+                    pass
+
+            if inxi_output:
+                # If some of the data is missing from the inxi call, add it. Otherwise we prefer
+                # the inxi output.
+                for key, val in [
+                    ("res", resolution),
+                    ("refresh", refresh),
+                    ("size", size),
+                ]:
+                    if inxi_output[key] in (None, "", "N/A"):
+                        inxi_output[key] = val
+            else:
+                outputs.append(
+                    {
+                        "model": "",
+                        "res": resolution,
+                        "refresh": refresh,
+                        "dpi": None,
+                        "size": size,
+                        "mapped": mapped[0],
+                    }
+                )
 
     return {
         "comp": compositor,
