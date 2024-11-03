@@ -301,28 +301,18 @@ def get_cpu_info():
         cpu_model += cpu_model2
 
     if not cpu_model:
-        # Fallback in case we did not get info from inxi
+        # Fallback to lscpu in case we did not get info from inxi
         try:
-            if platform.machine() == "aarch64":
-                cpu_model = (
-                    [
-                        line
-                        for line in get_command_output("cat /proc/cpuinfo").split("\n")
-                        if "Model" in line
-                    ][0]
-                    .split(":")[1]
-                    .strip()
-                )
-            else:
-                cpu_model = (
-                    [
-                        line
-                        for line in get_command_output("cat /proc/cpuinfo").split("\n")
-                        if "model name" in line
-                    ][0]
-                    .split(":")[1]
-                    .strip()
-                )
+            lines = [
+                line
+                for line in get_command_output("lscpu").split("\n")
+                if "Model name" in line
+            ]
+
+            cpu_model = lines[0].split(":")[1].strip()
+            if len(lines) > 1:
+                cpu_model += "/" + lines[1].split(":")[1].strip()
+
         except IndexError as e:
             pass
 
