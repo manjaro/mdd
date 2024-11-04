@@ -349,7 +349,7 @@ def get_graphics_info():
         gpus.append(gpu_info)
 
     # Run xrandr command and capture output
-    if xrandr_output := get_command_output("xrandr"):
+    if xrandr_output := shutil.which("xrandr") and get_command_output("xrandr"):
         mapped = None
         inxi_output = None
 
