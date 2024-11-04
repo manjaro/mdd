@@ -377,14 +377,15 @@ def get_graphics_info():
     compositor = compositor if compositor else get_compositor()
 
     if len(gpus) == 0:
+        glxinfo = (
+            get_command_output("glxinfo | grep 'OpenGL vendor'")
+            if shutil.which("glxinfo")
+            else None
+        )
         gpu_info = {
             "vendor": "",
             "model": get_command_output("lspci | grep -i vga | cut -d ':' -f3"),
-            "driver": (
-                get_command_output("glxinfo | grep 'OpenGL vendor'").split(": ")[-1]
-                if get_command_output("which glxinfo")
-                else None
-            ),
+            "driver": (glxinfo.split(": ")[-1] if glxinfo else None),
         }
         gpus.append(gpu_info)
 
