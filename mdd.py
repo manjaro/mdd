@@ -496,7 +496,9 @@ def get_audio_info():
         }
 
         # pactl is a dependency of pulseaudio
-        pulse_out = get_command_output(sudo[0] + "LANG=C pactl info" + sudo[1]).split("\n")
+        pulse_out = get_command_output(sudo[0] + "LANG=C pactl info" + sudo[1]).split(
+            "\n"
+        )
         for line in pulse_out:
             if line.startswith("Server Name"):
                 name = line.split(" ", 2)[-1].lower()
