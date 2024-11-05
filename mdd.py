@@ -64,9 +64,12 @@ def get_inxi_main_cat(code):
 
 def get_command_output(cmd, default=None):
     try:
-        return subprocess.check_output(cmd, shell=True).decode("utf-8").strip()
-    except Exception as e:
-        logging.info(f"Command '{cmd}' failed with: '{str(e)}'")
+        result = subprocess.run(cmd, capture_output=True, check=True, shell=True)
+        return result.stdout.decode("utf-8").strip()
+    except subprocess.CalledProcessError as e:
+        logging.info(
+            f"Command '{cmd}' failed with: '{e.returncode}: {e.stderr.decode("utf-8")}'"
+        )
         return default
 
 
