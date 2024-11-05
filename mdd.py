@@ -523,11 +523,13 @@ def get_audio_info():
 
     if not found_pipewire and is_installed("pipewire"):
         # Check if PipeWire is active (PulseAudio might not be installed)
-        pipew_out = get_command_output(sudo[0] + "LANG=C pw-cli info 0" + sudo[1])
+        pipew_active = False
+        if pipew_out := get_command_output(sudo[0] + "LANG=C pw-cli info 0" + sudo[1]):
+            pipew_active = 'core.daemon = "true"' in pipew_out
         info["servers"].append(
             {
                 "name": "PipeWire",
-                "active": 'core.daemon = "true"' in pipew_out and not pulseaudio_active,
+                "active": pipew_active and not pulseaudio_active,
             }
         )
     return info
