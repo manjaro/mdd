@@ -681,7 +681,7 @@ def get_package_info():
         "pkgs": int(get_command_output("pacman -Q | wc -l")),
         "foreign_pkgs": int(get_command_output("pacman -Qm | wc -l")),
         "pkgs_update_pending": int(
-            get_command_output("pacman -Sup --print-format %n | wc -l")
+            get_command_output("pacman -Qu | wc -l")
         ),
         "flatpaks": flatpaks,
         "pacman_mirrors": get_pacman_mirrors_info(),
