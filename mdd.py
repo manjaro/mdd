@@ -663,7 +663,7 @@ def get_package_info():
 
     try:
         output = get_command_output(
-            'grep "\\[ALPM\\] upgraded" /var/log/pacman.log | tail -1'
+            'grep -a "\\[ALPM\\] upgraded" /var/log/pacman.log | tail -1'
         )
         update_time = date_parser.parse(output.split(" ")[0].strip("[]")).isoformat()
     except Exception as e:
