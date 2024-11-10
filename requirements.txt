@@ -4,3 +4,4 @@ requests
 pytz
 tzlocal
 python-dateutil
+pyside6

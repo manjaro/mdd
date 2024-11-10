@@ -3,7 +3,10 @@
 # SPDX-FileCopyrightText: 2024 Roman Gilg <romangg@manjaro.org>
 # SPDX-License-Identifier: MIT
 import os
+import sys
 import uuid
+from os import write
+
 import psutil
 import hashlib
 import platform
@@ -20,12 +23,276 @@ import distro
 from datetime import datetime
 from dateutil import parser as date_parser
 
+from PySide6.QtCore import (QRect, Qt)
+from PySide6.QtGui import (QFont, )
+from PySide6.QtWidgets import (QCheckBox, QDialogButtonBox, QLabel, QRadioButton, QVBoxLayout, QWidget, QPlainTextEdit)
+from PySide6 import QtCore, QtWidgets
 
 inxi = None
 
+config = {
+    "telemetry": False,
+    "inxi": True,
+    "enabled": False,
+    "schedule": "1w",
+}
 
-def json_beaut(input, sort_keys=False):
-    return json.dumps(input, indent=4, sort_keys=sort_keys)
+
+class MDD(QtWidgets.QWidget):
+    global inxi
+    sysdata = None
+
+    def __init__(self):
+        super().__init__()
+        self.config_modified = False
+        self.resize(500, 600)
+        self.setWindowTitle("Welcome to MDD - The Manjaro Data Donor")
+        # button box
+        self.buttonBox = QDialogButtonBox(self)
+        self.buttonBox.setObjectName(u"buttonBox")
+        self.buttonBox.setGeometry(QRect(230, 550, 250, 32))
+        self.buttonBox.setOrientation(Qt.Orientation.Horizontal)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
+        # sysInfo preview
+        self.previewSysInfo = QPlainTextEdit(self)
+        self.previewSysInfo.setObjectName(u"previewSysInfo")
+        self.previewSysInfo.setGeometry(QRect(10, 10, 480, 410))
+        font = QFont()
+        font.setFamilies([u"Monospace"])
+        font.setPointSize(10)
+        self.previewSysInfo.setFont(font)
+        self.previewSysInfo.setStyleSheet(u"background-color: rgb(226, 226, 226);\n"
+                                          "color: rgb(0, 0, 0);")
+        self.previewSysInfo.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.layoutConfigServiceWidget = QWidget(self)
+        self.layoutConfigServiceWidget.setObjectName(u"layoutConfigServiceWidget")
+        self.layoutConfigServiceWidget.setGeometry(QRect(10, 430, 163, 161))
+        self.layoutConfigService = QVBoxLayout(self.layoutConfigServiceWidget)
+        self.layoutConfigService.setObjectName(u"layoutConfigService")
+        self.layoutConfigService.setContentsMargins(10, 10, 0, 10)
+
+        self.labelConfigService = QLabel(self.layoutConfigServiceWidget)
+        self.labelConfigService.setObjectName(u"labelConfigService")
+        self.layoutConfigService.addWidget(self.labelConfigService)
+
+        self.optWeekly = QRadioButton(self.layoutConfigServiceWidget)
+        self.optWeekly.setObjectName(u"optWeekly")
+        self.layoutConfigService.addWidget(self.optWeekly)
+
+        self.optBiWeekly = QRadioButton(self.layoutConfigServiceWidget)
+        self.optBiWeekly.setObjectName(u"optBiWeekly")
+        self.layoutConfigService.addWidget(self.optBiWeekly)
+
+        self.optMonthly = QRadioButton(self.layoutConfigServiceWidget)
+        self.optMonthly.setObjectName(u"optMonthly")
+        self.layoutConfigService.addWidget(self.optMonthly)
+
+        self.chkServiceEnabled = QCheckBox(self.layoutConfigServiceWidget)
+        self.chkServiceEnabled.setObjectName(u"chkServiceEnabled")
+        self.layoutConfigService.addWidget(self.chkServiceEnabled)
+
+        self.layoutConfigInformationWidget = QWidget(self)
+        self.layoutConfigInformationWidget.setObjectName(u"layoutconfigInformationWidget")
+        self.layoutConfigInformationWidget.setGeometry(QRect(180, 430, 210, 97))
+
+        self.layoutConfigInformation = QVBoxLayout(self.layoutConfigInformationWidget)
+        self.layoutConfigInformation.setObjectName(u"layoutConfigInformation")
+        self.layoutConfigInformation.setContentsMargins(10, 10, 0, 10)
+
+        self.labelInfoOptions = QLabel(self.layoutConfigInformationWidget)
+        self.labelInfoOptions.setObjectName(u"labelInfoOptions")
+        self.layoutConfigInformation.addWidget(self.labelInfoOptions)
+
+        self.optionSystemPing = QRadioButton(self.layoutConfigInformationWidget)
+        self.optionSystemPing.setObjectName(u"optionSystemPing")
+        self.layoutConfigInformation.addWidget(self.optionSystemPing)
+        self.optionSystemInfo = QRadioButton(self.layoutConfigInformationWidget)
+        self.optionSystemInfo.setObjectName(u"optionSystemInfo")
+        self.layoutConfigInformation.addWidget(self.optionSystemInfo)
+
+        self.optionSystemPing.setChecked(not config["telemetry"])
+        self.optionSystemInfo.setChecked(config["telemetry"])
+
+        if config["schedule"] == "1w":
+            self.optWeekly.setChecked(True)
+        if config["schedule"] == "2w":
+            self.optWeekly.setChecked(True)
+        if config["schedule"] == "4w":
+            self.optWeekly.setChecked(True)
+        if config["enabled"]:
+            self.chkServiceEnabled.setChecked(True)
+
+        self.labelConfigService.setText(u"Service Configuration")
+        self.optWeekly.setText(u"Weekly")
+        self.optBiWeekly.setText(u"Bi-weekly")
+        self.optMonthly.setText(u"Monthly")
+        self.chkServiceEnabled.setText(u"Enable Service")
+        self.labelInfoOptions.setText(u"Information Configuration")
+        self.optionSystemPing.setText(u"Basic Ping")
+        self.optionSystemInfo.setText(u"System Info")
+
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.close_form)
+        self.optionSystemPing.clicked.connect(self.opt_system_ping_set)
+        self.optionSystemInfo.clicked.connect(self.opt_system_info_set)
+        self.chkServiceEnabled.clicked.connect(self.enable_service)
+        self.optWeekly.clicked.connect(self.opt_weekly_set)
+        self.optBiWeekly.clicked.connect(self.opt_biweekly_set)
+        self.optMonthly.clicked.connect(self.opt_monthly_set)
+
+        self.sysdata = get_device_data(config["telemetry"])
+        self.previewSysInfo.setPlainText(json_beaut(self.sysdata, indent=2))
+
+    def set_config(self, new_config):
+        config.update(new_config)
+        self.config_modified = True
+        self.optWeekly.setChecked(config["schedule"] == "1w")
+        self.optBiWeekly.setChecked(config["schedule"] == "2w")
+        self.optMonthly.setChecked(config["schedule"] == "4w")
+        self.chkServiceEnabled.setChecked(config["enabled"])
+        self.previewSysInfo.setPlainText("Stand by... working")
+        self.previewSysInfo.repaint()
+        self.optionSystemPing.setChecked(not config["telemetry"])
+        self.optionSystemInfo.setChecked(config["telemetry"])
+        self.sysdata = get_device_data(new_config)
+        self.previewSysInfo.setPlainText(json_beaut(self.sysdata, indent=2))
+
+    @staticmethod
+    def close_form():
+        exit()
+
+    @QtCore.Slot()
+    def opt_weekly_set(self):
+        config["schedule"] = "1w"
+        generate_service_files()
+        self.config_modified = True
+
+    @QtCore.Slot()
+    def opt_biweekly_set(self):
+        config["schedule"] = "2w"
+        generate_service_files()
+        self.config_modified = True
+
+    @QtCore.Slot()
+    def opt_monthly_set(self):
+        config["schedule"] = "4w"
+        generate_service_files()
+        self.config_modified = True
+
+    @QtCore.Slot()
+    def enable_service(self):
+        config["enabled"] = self.chkServiceEnabled.isChecked()
+        set_service_state(config["enabled"])
+        self.config_modified = True
+
+    @QtCore.Slot()
+    def accept(self):
+        if self.sysdata is not None:
+            http_post_info(self.sysdata)
+        initialize_config(write_config=self.config_modified)
+        self.close_form()
+
+    @QtCore.Slot()
+    def opt_system_ping_set(self):
+        config["telemetry"] = False
+        self.previewSysInfo.clear()
+        self.previewSysInfo.setPlainText("Stand by... working")
+        self.previewSysInfo.repaint()
+        self.sysdata = get_device_data(config["telemetry"])
+        self.previewSysInfo.clear()
+        self.previewSysInfo.setPlainText(json_beaut(self.sysdata, indent=2))
+        generate_service_files()
+
+    @QtCore.Slot()
+    def opt_system_info_set(self):
+        config["telemetry"] = True
+        self.previewSysInfo.clear()
+        self.previewSysInfo.setPlainText("Stand by... working")
+        self.previewSysInfo.repaint()
+        self.sysdata = get_device_data(config["telemetry"])
+        self.previewSysInfo.clear()
+        self.previewSysInfo.setPlainText(json_beaut(self.sysdata, indent=2))
+        generate_service_files()
+
+
+def generate_service_files():
+    service_path = f"{os.path.expanduser("~")}/.config/systemd/user"
+    if not os.path.exists(service_path):
+        os.makedirs(service_path)
+    disable_telemetry = f"--disable-telemetry"
+    if config["telemetry"]:
+        disable_telemetry = ""
+    timer_template = f"[Unit]\n" \
+                     f"Description=Schedule Manjaro Data Donor\n\n" \
+                     f"[Timer]\n" \
+                     f"OnStartupSec=10m\n" \
+                     f"OnUnitActiveSec={config['schedule']}\n\n" \
+                     f"[Install]\n" \
+                     f"WantedBy=timers.target\n"
+    service_template = f"[Unit]\n" \
+                       f"Description=Manjaro Data Donor\n" \
+                       f"Wants=network-online.target\n" \
+                       f"After=network-online.target default.target\n\n" \
+                       f"[Service]\n" \
+                       f"Type=oneshot\n" \
+                       f"ExecStart=/usr/bin/mdd {disable_telemetry}\n\n" \
+                       f"[Install]\n" \
+                       f"WantedBy=default.target\n"
+    # write user service unit
+    with open(f"{service_path}/mdd.service", "w") as f:
+        f.write(service_template)
+    # writ user timer
+    with open(f"{service_path}/mdd.timer", "w") as f:
+        f.write(timer_template)
+
+
+def set_service_state(enabled: bool = None):
+    if enabled:
+        get_command_output("systemctl --user enable mdd.timer")
+        return
+    get_command_output("systemctl --user disable mdd.timer")
+
+
+def initialize_config(write_config: bool = False) -> dict:
+    config_file = f"{os.path.expanduser("~")}/.config/mdd.conf"
+    if write_config:
+        with open(config_file, "w") as f:
+            json.dump(config, f)
+        return config
+
+    try:
+        with open(config_file, "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return config
+
+    if data is not None:
+        for key, value in data.items():
+            try:
+                config[key] = value
+            except IndexError:
+                pass
+
+    return config
+
+def http_post_info(sys_info) -> bool:
+    try:
+        response = requests.post(
+            "https://metrics-api.manjaro.org/send",
+            json=sys_info,
+            headers={"Content-Type": "application/json"},
+            timeout=2,
+        )
+
+        response.raise_for_status()
+        return True
+    except Exception as e:
+        logging.error(f"submitting telemetry: {e}")
+        return False
+
+
+def json_beaut(input, sort_keys=False, indent=4):
+    return json.dumps(input, indent=indent, sort_keys=sort_keys)
 
 
 def prepare_inxi():
@@ -112,7 +379,7 @@ def dualboot_os_prober_check():
         ]
 
         if result.returncode != 0 or any(
-            indicator in result.stderr for indicator in error_indicators
+                indicator in result.stderr for indicator in error_indicators
         ):
             # Permission error detected, try sudo if available without password
             result = subprocess.run(
@@ -158,11 +425,11 @@ def dualboot_lsblk_check(min_size_gb=20):
     def process_device(device):
         # Check the device itself
         if (
-            str(device.get("fstype", "")).lower() == "ntfs"
-            and int(device.get("size", 0)) >= min_size_bytes
+                str(device.get("fstype", "")).lower() == "ntfs"
+                and int(device.get("size", 0)) >= min_size_bytes
         ):
             logging.info(
-                f"Assuming Windows partition: '/dev/{device['name']}' ({int(device['size']) / (1024**3):.0f} GB)"
+                f"Assuming Windows partition: '/dev/{device['name']}' ({int(device['size']) / (1024 ** 3):.0f} GB)"
             )
             return True
 
@@ -332,8 +599,8 @@ def get_cpu_info():
 def get_memory_info():
     logging.info("...get memory info")
     return {
-        "ram_gb": psutil.virtual_memory().total / (1024**3),
-        "swap_gb": psutil.swap_memory().total / (1024**3),
+        "ram_gb": psutil.virtual_memory().total / (1024 ** 3),
+        "swap_gb": psutil.swap_memory().total / (1024 ** 3),
     }
 
 
@@ -543,15 +810,15 @@ def get_disks_metrics():
 
     def traverse(block, results, min_size, is_crypt):
         is_crypt = (
-            is_crypt
-            or block.get("type") == "crypt"
-            or block.get("fstype") == "crypto_LUKS"
+                is_crypt
+                or block.get("type") == "crypt"
+                or block.get("fstype") == "crypto_LUKS"
         )
         min_size = min(min_size, block.get("size"))
 
         def get_mount_data():
             return {
-                "size_gb": min_size / (1024**3),
+                "size_gb": min_size / (1024 ** 3),
                 "fstype": block.get("fstype"),
                 "crypt": is_crypt,
             }
@@ -583,7 +850,7 @@ def get_disks_metrics():
     for device in lsblk_data["blockdevices"]:
         size = device.get("size")
         results = {
-            "size_gb": size / (1024**3),
+            "size_gb": size / (1024 ** 3),
             "root": None,
             "home": None,
         }
@@ -792,6 +1059,12 @@ def main():
         dest="telemetry",
         help="Only count the device without sending data",
     )
+    parser.add_argument(
+        "--gui",
+        action="store_true",
+        dest="gui",
+        help="Set options using GUI"
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -800,46 +1073,57 @@ def main():
         datefmt="%Y-%m-%dT%H:%M:%S",
     )
 
-    print(f"{BOLD}{HEADER}Welcome to MDD - The Manjaro Data Donor{ENDC}")
-    print(f"{OKBLUE}Preparing data submission...{ENDC}")
+    if args.gui:
 
-    if os.getenv("MDD_DISABLE_INXI"):
-        logging.info(f"Skipping inxi because MDD_DISABLE_INXI was set.")
+        # initialize from configuration file
+        config.update(initialize_config())
+        config["telemetry"] = args.telemetry
+
+        if os.getenv("MDD_DISABLE_INXI"):
+            logging.info(f"Skipping inxi because MDD_DISABLE_INXI was set.")
+            config["inxi"] = False
+        else:
+            prepare_inxi()
+
+        app = QtWidgets.QApplication(sys.argv)
+        widget = MDD()
+        widget.set_config(config)
+        widget.show()
+        sys.exit(app.exec())
+
     else:
-        prepare_inxi()
+        print(f"{BOLD}{HEADER}Welcome to MDD - The Manjaro Data Donor{ENDC}")
+        print(f"{OKBLUE}Preparing data submission...{ENDC}")
 
-    data = get_device_data(args.telemetry)
+        if os.getenv("MDD_DISABLE_INXI"):
+            logging.info(f"Skipping inxi because MDD_DISABLE_INXI was set.")
+        else:
+            prepare_inxi()
 
-    separator = f"{BOLD}{HEADER}{'-' * 42}{ENDC}"
-    print("\n" + separator)
+        data = get_device_data(args.telemetry)
 
-    if args.dry_run:
-        print(" " * 1 + f"{BOLD}Would send the following data (dry run){ENDC}")
-    else:
-        print(" " * 8 + f"{BOLD}Sending the following data{ENDC}")
+        separator = f"{BOLD}{HEADER}{'-' * 42}{ENDC}"
+        print("\n" + separator)
 
-    print(separator)
-    print(json_beaut(data))
-    print(separator + "\n")
+        if args.dry_run:
+            print(" " * 1 + f"{BOLD}Would send the following data (dry run){ENDC}")
+        else:
+            print(" " * 8 + f"{BOLD}Sending the following data{ENDC}")
 
-    if args.dry_run:
-        print("Note: Skipping data submission because of dry run.")
-        return
+        print(separator)
+        print(json_beaut(data))
+        print(separator + "\n")
 
-    try:
-        response = requests.post(
-            "https://metrics-api.manjaro.org/send",
-            json=data,
-            headers={"Content-Type": "application/json"},
-            timeout=2,
-        )
+        if args.dry_run:
+            print("Note: Skipping data submission because of dry run.")
+            return
 
-        response.raise_for_status()
-    except Exception as e:
-        logging.error(f"submitting telemetry: {e}")
-        exit(1)
-
-    print("Succesful sent at", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        else:
+            success = http_post_info(data)
+            if success:
+                print("Succesful sent at", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            else:
+                exit(1)
 
 
 if __name__ == "__main__":
