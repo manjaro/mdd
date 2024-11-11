@@ -67,8 +67,8 @@ class MDD(QtWidgets.QWidget):
         font.setFamilies([u"Monospace"])
         font.setPointSize(9)
         self.previewSysInfo.setFont(font)
-        self.previewSysInfo.setStyleSheet(u"background-color: rgb(226, 226, 226);\n"
-                                          "color: rgb(0, 0, 0);")
+        # self.previewSysInfo.setStyleSheet(u"background-color: rgb(226, 226, 226);\n"
+        #                                   "color: rgb(0, 0, 0);")
         self.previewSysInfo.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.labelTimerOptions = QLabel(self)
         self.labelTimerOptions.setObjectName(u"labelTimerOptions")
