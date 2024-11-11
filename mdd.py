@@ -23,16 +23,16 @@ import distro
 from datetime import datetime
 from dateutil import parser as date_parser
 
-from PySide6.QtCore import (QRect, Qt)
+from PySide6.QtCore import (QRect, QSize, Qt)
 from PySide6.QtGui import (QFont, )
-from PySide6.QtWidgets import (QCheckBox, QDialogButtonBox, QLabel, QRadioButton, QVBoxLayout, QWidget, QPlainTextEdit)
+from PySide6.QtWidgets import (QCheckBox, QDialogButtonBox, QLabel, QPlainTextEdit, QRadioButton, QSizePolicy,
+                               QVBoxLayout, QWidget)
 from PySide6 import QtCore, QtWidgets
 
 inxi = None
 
 config = {
-    "telemetry": False,
-    "inxi": True,
+    "telemetry": True,
     "enabled": False,
     "schedule": "1w",
 }
@@ -45,76 +45,101 @@ class MDD(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.config_modified = False
-        self.resize(500, 600)
-        self.setWindowTitle("Welcome to MDD - The Manjaro Data Donor")
-        # button box
+        self.setWindowTitle("MDD - The Manjaro Data Donor")
+        self.resize(500, 650)
+        size_policy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        size_policy.setHorizontalStretch(0)
+        size_policy.setVerticalStretch(0)
+        size_policy.setHeightForWidth(self.sizePolicy().hasHeightForWidth())
+        self.setSizePolicy(size_policy)
+        self.setMinimumSize(QSize(500, 650))
+        self.setMaximumSize(QSize(500, 650))
+        # self.setSizeGripEnabled(False)
         self.buttonBox = QDialogButtonBox(self)
         self.buttonBox.setObjectName(u"buttonBox")
-        self.buttonBox.setGeometry(QRect(230, 550, 250, 32))
+        self.buttonBox.setGeometry(QRect(250, 600, 240, 32))
         self.buttonBox.setOrientation(Qt.Orientation.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
-        # sysInfo preview
         self.previewSysInfo = QPlainTextEdit(self)
         self.previewSysInfo.setObjectName(u"previewSysInfo")
         self.previewSysInfo.setGeometry(QRect(10, 10, 480, 410))
         font = QFont()
         font.setFamilies([u"Monospace"])
-        font.setPointSize(10)
+        font.setPointSize(9)
         self.previewSysInfo.setFont(font)
         self.previewSysInfo.setStyleSheet(u"background-color: rgb(226, 226, 226);\n"
                                           "color: rgb(0, 0, 0);")
         self.previewSysInfo.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-        self.checkEnableTimer = QCheckBox(MDD)
-        self.checkEnableTimer.setObjectName(u"checkEnableTimer")
-        self.checkEnableTimer.setGeometry(QRect(20, 560, 200, 25))
-        self.optionWeekly = QRadioButton(MDD)
-        self.optionWeekly.setObjectName(u"optionWeekly")
-        self.optionWeekly.setGeometry(QRect(20, 470, 200, 25))
-        self.optionBiWeekly = QRadioButton(MDD)
-        self.optionBiWeekly.setObjectName(u"optionBiWeekly")
-        self.optionBiWeekly.setGeometry(QRect(20, 500, 200, 25))
-        self.optionMonthly = QRadioButton(MDD)
-        self.optionMonthly.setObjectName(u"optionMonthly")
-        self.optionMonthly.setGeometry(QRect(20, 530, 200, 25))
-        self.labelTimerOptions = QLabel(MDD)
+        self.labelTimerOptions = QLabel(self)
         self.labelTimerOptions.setObjectName(u"labelTimerOptions")
-        self.labelTimerOptions.setGeometry(QRect(20, 440, 200, 25))
-        self.optionSystemInfo = QRadioButton(MDD)
-        self.optionSystemInfo.setObjectName(u"optionSystemInfo")
-        self.optionSystemInfo.setGeometry(QRect(270, 500, 199, 25))
-        self.labelServiceOptions = QLabel(MDD)
+        self.labelTimerOptions.setGeometry(QRect(270, 440, 200, 25))
+        self.labelServiceOptions = QLabel(self)
         self.labelServiceOptions.setObjectName(u"labelServiceOptions")
-        self.labelServiceOptions.setGeometry(QRect(270, 440, 200, 25))
-        self.optionSystemPing = QRadioButton(MDD)
+        self.labelServiceOptions.setGeometry(QRect(20, 440, 200, 25))
+        self.widgetLayoutTimerConfig = QWidget(self)
+        self.widgetLayoutTimerConfig.setObjectName(u"widgetLayoutTimerConfig")
+        self.widgetLayoutTimerConfig.setGeometry(QRect(260, 460, 231, 121))
+        self.layoutTimerConfig = QVBoxLayout(self.widgetLayoutTimerConfig)
+        self.layoutTimerConfig.setObjectName(u"layoutTimerConfig")
+        self.layoutTimerConfig.setContentsMargins(10, 10, 0, 0)
+        self.optionWeekly = QRadioButton(self.widgetLayoutTimerConfig)
+        self.optionWeekly.setObjectName(u"optionWeekly")
+        self.optionWeekly.setChecked(True)
+
+        self.layoutTimerConfig.addWidget(self.optionWeekly)
+
+        self.optionBiWeekly = QRadioButton(self.widgetLayoutTimerConfig)
+        self.optionBiWeekly.setObjectName(u"optionBiWeekly")
+
+        self.layoutTimerConfig.addWidget(self.optionBiWeekly)
+
+        self.optionMonthly = QRadioButton(self.widgetLayoutTimerConfig)
+        self.optionMonthly.setObjectName(u"optionMonthly")
+
+        self.layoutTimerConfig.addWidget(self.optionMonthly)
+
+        self.checkEnableTimer = QCheckBox(self.widgetLayoutTimerConfig)
+        self.checkEnableTimer.setObjectName(u"checkEnableTimer")
+
+        self.layoutTimerConfig.addWidget(self.checkEnableTimer)
+
+        self.widgetDataConfig = QWidget(self)
+        self.widgetDataConfig.setObjectName(u"widgetDataConfig")
+        self.widgetDataConfig.setGeometry(QRect(10, 460, 231, 71))
+        self.layoutDataConfig = QVBoxLayout(self.widgetDataConfig)
+        self.layoutDataConfig.setObjectName(u"layoutDataConfig")
+        self.layoutDataConfig.setContentsMargins(10, 10, 0, 0)
+        self.optionSystemInfo = QRadioButton(self.widgetDataConfig)
+        self.optionSystemInfo.setObjectName(u"optionSystemInfo")
+        self.optionSystemInfo.setChecked(True)
+
+        self.layoutDataConfig.addWidget(self.optionSystemInfo)
+
+        self.optionSystemPing = QRadioButton(self.widgetDataConfig)
         self.optionSystemPing.setObjectName(u"optionSystemPing")
-        self.optionSystemPing.setGeometry(QRect(270, 470, 200, 25))
 
-        if config["schedule"] == "1w":
-            self.optionWeekly.setChecked(True)
-        if config["schedule"] == "2w":
-            self.optionWeekly.setChecked(True)
-        if config["schedule"] == "4w":
-            self.optionWeekly.setChecked(True)
-        if config["enabled"]:
-            self.checkEnableTimer.setChecked(True)
+        self.layoutDataConfig.addWidget(self.optionSystemPing)
 
+        # set text (this is candidate for translation
         self.checkEnableTimer.setText(u"Enable Timer")
         self.optionWeekly.setText(u"Weekly")
         self.optionBiWeekly.setText(u"Biweek&ly")
         self.optionMonthly.setText(u"Mon&thly")
-        self.labelTimerOptions.setText(u"<html><head/><body><p><span style=\" font-size:11pt; font-weight:700;\">Donate Timer</span></p></body></html>")
+        self.labelTimerOptions.setText(
+            u"<html><head/><body><p><span style=\" font-size:11pt; font-weight:700;\">Donate Timer</span></p></body></html>")
         self.optionSystemInfo.setText(u"S&ystem Info")
-        self.labelServiceOptions.setText(u"<html><head/><body><p><span style=\" font-size:11pt; font-weight:700;\">Donate Info</span></p></body></html>")
+        self.labelServiceOptions.setText(
+            u"<html><head/><body><p><span style=\" font-size:11pt; font-weight:700;\">Donate Info</span></p></body></html>")
         self.optionSystemPing.setText(u"&Basic Ping")
 
-        self.buttonBox.accepted.connect(self.accept)
-        self.buttonBox.rejected.connect(self.close_form)
-        self.optionSystemPing.clicked.connect(self.opt_system_ping_set)
-        self.optionSystemInfo.clicked.connect(self.opt_system_info_set)
+        self.buttonBox.accepted.connect(self.accepted)
+        self.buttonBox.rejected.connect(self.rejected)
         self.checkEnableTimer.clicked.connect(self.enable_service)
-        self.optionWeekly.clicked.connect(self.opt_weekly_set)
         self.optionBiWeekly.clicked.connect(self.opt_biweekly_set)
         self.optionMonthly.clicked.connect(self.opt_monthly_set)
+        self.optionSystemPing.clicked.connect(self.opt_system_ping_set)
+        self.optionSystemInfo.clicked.connect(self.opt_system_info_set)
+        self.optionWeekly.clicked.connect(self.opt_weekly_set)
 
         self.sysdata = get_device_data(config["telemetry"])
         self.previewSysInfo.setPlainText(json_beaut(self.sysdata, indent=2))
@@ -122,19 +147,25 @@ class MDD(QtWidgets.QWidget):
     def set_config(self, new_config):
         config.update(new_config)
         self.config_modified = True
-        self.optionWeekly.setChecked(config["schedule"] == "1w")
-        self.optionBiWeekly.setChecked(config["schedule"] == "2w")
-        self.optionMonthly.setChecked(config["schedule"] == "4w")
-        self.checkEnableTimer.setChecked(config["enabled"])
+        if config["schedule"] == "1w":
+            self.optionWeekly.setChecked(True)
+        if config["schedule"] == "2w":
+            self.optionBiWeekly.setChecked(True)
+        if config["schedule"] == "4w":
+            self.optionMonthly.setChecked(True)
+        if config["enabled"]:
+            self.checkEnableTimer.setChecked(True)
+
         self.previewSysInfo.setPlainText("Stand by... working")
         self.previewSysInfo.repaint()
         self.optionSystemPing.setChecked(not config["telemetry"])
         self.optionSystemInfo.setChecked(config["telemetry"])
+
         self.sysdata = get_device_data(new_config)
         self.previewSysInfo.setPlainText(json_beaut(self.sysdata, indent=2))
 
     @staticmethod
-    def close_form():
+    def rejected():
         exit()
 
     @QtCore.Slot()
@@ -157,20 +188,22 @@ class MDD(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def enable_service(self):
-        config["enabled"] = self.chkServiceEnabled.isChecked()
-        set_service_state(config["enabled"])
+        config["enabled"] = self.checkEnableTimer.isChecked()
+        set_timer_state(config["enabled"])
         self.config_modified = True
 
     @QtCore.Slot()
-    def accept(self):
+    def accepted(self):
         if self.sysdata is not None:
             http_post_info(self.sysdata)
-        initialize_config(write_config=self.config_modified)
-        self.close_form()
+        if self.config_modified:
+            write_config()
+        self.rejected()
 
     @QtCore.Slot()
     def opt_system_ping_set(self):
         config["telemetry"] = False
+        self.config_modified = True
         self.previewSysInfo.clear()
         self.previewSysInfo.setPlainText("Stand by... working")
         self.previewSysInfo.repaint()
@@ -182,6 +215,7 @@ class MDD(QtWidgets.QWidget):
     @QtCore.Slot()
     def opt_system_info_set(self):
         config["telemetry"] = True
+        self.config_modified = True
         self.previewSysInfo.clear()
         self.previewSysInfo.setPlainText("Stand by... working")
         self.previewSysInfo.repaint()
@@ -215,41 +249,36 @@ def generate_service_files():
                        f"[Install]\n" \
                        f"WantedBy=default.target\n"
     # write user service unit
-    with open(f"{service_path}/mdd.service", "w") as f:
+    with open(f"{service_path}/self.service", "w") as f:
         f.write(service_template)
     # writ user timer
-    with open(f"{service_path}/mdd.timer", "w") as f:
+    with open(f"{service_path}/self.timer", "w") as f:
         f.write(timer_template)
 
 
-def set_service_state(enabled: bool = None):
-    if enabled:
-        get_command_output("systemctl --user enable mdd.timer")
+def set_timer_state(enable: bool):
+    if enable:
+        get_command_output("systemctl --user enable self.timer")
         return
-    get_command_output("systemctl --user disable mdd.timer")
+    get_command_output("systemctl --user disable self.timer")
 
 
-def initialize_config(write_config: bool = False) -> dict:
-    config_file = f"{os.path.expanduser("~")}/.config/mdd.conf"
+def write_config():
+    config_file = f"{os.path.expanduser("~")}/.config/self.conf"
     if write_config:
         with open(config_file, "w") as f:
             json.dump(config, f)
         return config
 
-    try:
+
+def read_config():
+    config_file = f"{os.path.expanduser("~")}/.config/self.conf"
+    if os.path.exists(config_file):
         with open(config_file, "r") as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        return config
+            return json.load(f)
+    else:
+        return {"telemetry": True, "schedule": "1w", "enabled": True}
 
-    if data is not None:
-        for key, value in data.items():
-            try:
-                config[key] = value
-            except IndexError:
-                pass
-
-    return config
 
 def http_post_info(sys_info) -> bool:
     try:
@@ -1052,12 +1081,11 @@ def main():
     if args.gui:
 
         # initialize from configuration file
-        config.update(initialize_config())
+        config.update(read_config())
         config["telemetry"] = args.telemetry
 
         if os.getenv("MDD_DISABLE_INXI"):
             logging.info(f"Skipping inxi because MDD_DISABLE_INXI was set.")
-            config["inxi"] = False
         else:
             prepare_inxi()
 
