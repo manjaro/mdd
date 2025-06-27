@@ -79,7 +79,7 @@ def get_hashed_device_id():
         machine_id = f.read().strip()
 
     # Hash the machine ID using SHA-256 to anonymize it
-    hashed_id = hashlib.sha256(machine_id.encode()).digest()
+    hashed_id = hashlib.sha256(machine_id.encode() + b"manjarodatadonor").digest()
 
     # Convert the first 16 bytes of the hash to a UUID (version 5 UUID format)
     return str(uuid.UUID(bytes=hashed_id[:16], version=5))
