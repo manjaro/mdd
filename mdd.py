@@ -743,6 +743,7 @@ def get_device_data(telemetry: bool):
             "timestamp": datetime.now(pytz.UTC).isoformat(),
             "device_id": get_hashed_device_id(),
             "distro_id": distro.id(),
+            "variant_id": distro.os_release_info().get("variant_id"),
         },
         "package": get_limited_package_info(),
     }
