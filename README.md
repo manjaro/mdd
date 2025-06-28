@@ -7,7 +7,7 @@ This way we can learn how Manjaro is used by our users and we can focus our effo
 - We only collect impersonal information about the hardware and the environment. In particular **we don't store IP addresses**.
 - To differentiate systems we need a unique identifer. For that we use [`/etc/machine-id`](https://www.freedesktop.org/software/systemd/man/latest/machine-id.html), what is hashed before being sent.
 
-The data is being stored in a database on one of our Hetzner servers. Visualizations of the data are made available via Grafana [here](https://metrics.manjaro.org/public-dashboards/cb0f690cba304389bf3ed2c254c14c01). We plan on adding more charts for interesting data later on.
+The data is being stored in a database on one of our Hetzner servers. Visualizations of the data are made available via Grafana [here](https://metrics.manjaro.org). We plan on adding more charts for interesting data later on.
 
 ## Setup Instructions
 
@@ -50,13 +50,15 @@ python mdd.py --dry-run
 in order to only display the data that would be sent without actually doing so.
 
 ### Telemetry
-If you only want to count the device but not provide any data about your system, then run:
+By default only a minimal amount of data is being sent for counting Manjaro installs and detecting potential issues with our software distribution.
+You can opt-in to sending more data though, what helps us to learn more about what our users need and shows nicely on https://metrics.manjaro.org.
+You can do that from the command line via the force-telemetry flag:
 
 ```bash
-python mdd.py --disable-telemetry
+python mdd.py --force-telemetry
 ```
 
-If possible please provide all information though. It helps us with learning about what our users need. And the graphs look cool!
+You can also combine the flag with the dry-run flag to first learn what would be transmitted.
 
 ### Debugging
 The log level can be increased from `WARNING` to `INFO`/`DEBUG` with:
