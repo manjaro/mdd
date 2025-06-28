@@ -658,8 +658,8 @@ def get_pacman_mirrors_info():
         return {"total": None, "ok": None, "country_config": ""}
 
 
-def get_package_info():
-    logging.info("...get package info")
+def get_limited_package_info():
+    logging.info("...get limited package info")
 
     try:
         output = get_command_output(
@@ -671,18 +671,25 @@ def get_package_info():
         logging.error(f"input was: '{output}'")
         update_time = "unknown"
 
+    return {
+        "last_update": update_time,
+        "branch": get_command_output("pacman-mirrors -G", "unknown"),
+        "pacman_mirrors": get_pacman_mirrors_info(),
+    }
+
+
+def get_advanced_package_info():
+    logging.info("...get advanced package info")
+
     flatpaks = 0
     if shutil.which("flatpak"):
         flatpaks = int(get_command_output("flatpak list --app | wc -l", "0"))
 
     return {
-        "last_update": update_time,
-        "branch": get_command_output("pacman-mirrors -G", "unknown"),
         "pkgs": int(get_command_output("pacman -Q | wc -l")),
         "foreign_pkgs": int(get_command_output("pacman -Qm | wc -l")),
         "pkgs_update_pending": int(get_command_output("pacman -Qu | wc -l")),
         "flatpaks": flatpaks,
-        "pacman_mirrors": get_pacman_mirrors_info(),
     }
 
 
@@ -736,7 +743,8 @@ def get_device_data(telemetry: bool):
             "timestamp": datetime.now(pytz.UTC).isoformat(),
             "device_id": get_hashed_device_id(),
             "distro_id": distro.id(),
-        }
+        },
+        "package": get_limited_package_info(),
     }
 
     if not telemetry:
@@ -761,9 +769,10 @@ def get_device_data(telemetry: bool):
         "audio": get_audio_info(),
         "disk": get_disk_info(),
         "locale": get_locale_info(),
-        "package": get_package_info(),
         "desktop": get_desktop_info(),
     }
+
+    data["package"] |= get_advanced_package_info()
 
     return data
 
