@@ -40,7 +40,7 @@ def prepare_inxi():
             ["inxi", "-Fxxx", "--output", "json", "--output-file", "print"],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=300,
         )
         inxi = json.loads(result.stdout.strip())
     except Exception as e:
