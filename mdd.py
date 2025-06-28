@@ -752,6 +752,7 @@ def get_device_data(force_telemetry: bool):
             "distro_id": distro.id(),
             "release": distro.version(),
             "variant_id": distro.os_release_info().get("variant_id"),
+            "opt_in": False,
         },
         "package": get_limited_package_info(),
     }
@@ -765,6 +766,7 @@ def get_device_data(force_telemetry: bool):
         prepare_inxi()
 
     data["meta"] |= {
+        "opt_in": True,
         "inxi": inxi is not None,
     }
 
