@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-# SPDX-FileCopyrightText: 2024 Roman Gilg <romangg@manjaro.org>
+# SPDX-FileCopyrightText: 2025 Roman Gilg <romangg@manjaro.org>
 # SPDX-License-Identifier: MIT
 import os
 import uuid
+import configparser
 import psutil
 import hashlib
 import platform
@@ -736,7 +737,13 @@ def get_desktop_info():
     return info
 
 
-def get_device_data(telemetry: bool):
+def get_telemetry_setting():
+    config = configparser.ConfigParser()
+    config.read("/etc/mdd.conf")
+    return config.getboolean("telemetry", "advanced", fallback=False)
+
+
+def get_device_data(force_telemetry: bool):
     data = {
         "meta": {
             "version": 1,
@@ -749,7 +756,7 @@ def get_device_data(telemetry: bool):
         "package": get_limited_package_info(),
     }
 
-    if not telemetry:
+    if not get_telemetry_setting() and not force_telemetry:
         return data
 
     if os.getenv("MDD_DISABLE_INXI"):
@@ -802,10 +809,10 @@ def main():
         help="Set the logging level",
     )
     parser.add_argument(
-        "--disable-telemetry",
-        action="store_false",
-        dest="telemetry",
-        help="Only count the device without sending data",
+        "--force-telemetry",
+        action="store_true",
+        dest="force_telemetry",
+        help="Force sending additional telemetry data",
     )
     args = parser.parse_args()
 
@@ -818,7 +825,7 @@ def main():
     print(f"{BOLD}{HEADER}Welcome to MDD - The Manjaro Data Donor{ENDC}")
     print(f"{OKBLUE}Preparing data submission...{ENDC}")
 
-    data = get_device_data(args.telemetry)
+    data = get_device_data(force_telemetry=args.force_telemetry)
 
     separator = f"{BOLD}{HEADER}{'-' * 42}{ENDC}"
     print("\n" + separator)
