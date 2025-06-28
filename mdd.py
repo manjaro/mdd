@@ -742,6 +742,11 @@ def get_device_data(telemetry: bool):
     if not telemetry:
         return data
 
+    if os.getenv("MDD_DISABLE_INXI"):
+        logging.info(f"Skipping inxi because MDD_DISABLE_INXI was set.")
+    else:
+        prepare_inxi()
+
     data["meta"] |= {
         "release": distro.version(),
         "inxi": inxi is not None,
@@ -802,11 +807,6 @@ def main():
 
     print(f"{BOLD}{HEADER}Welcome to MDD - The Manjaro Data Donor{ENDC}")
     print(f"{OKBLUE}Preparing data submission...{ENDC}")
-
-    if os.getenv("MDD_DISABLE_INXI"):
-        logging.info(f"Skipping inxi because MDD_DISABLE_INXI was set.")
-    else:
-        prepare_inxi()
 
     data = get_device_data(args.telemetry)
 
